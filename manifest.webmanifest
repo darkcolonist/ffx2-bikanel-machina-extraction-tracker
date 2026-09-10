@@ -1,0 +1,10 @@
+{
+  "name": "FFX-2 Djose Machina Tracker",
+  "short_name": "Djose Tracker",
+  "description": "Track Djose Temple The Experiment digging parts (A=1, S=3, Z=5) to Lv. 5 / 38 pts per stat.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#090d14",
+  "theme_color": "#090d14",
+  "orientation": "portrait"
+}

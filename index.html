@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090d14" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Djose Tracker" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <title>FFX-2 Djose Machina Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+    }
+    body {
+      background-color: #090d14;
+      color: #e2e8f0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .touch-btn {
+      touch-action: manipulation;
+      user-select: none;
+    }
+  </style>
+</head>
+<body class="p-2.5 sm:p-4 flex flex-col justify-between max-w-md mx-auto h-full select-none">
+  <!-- Top Bar -->
+  <header class="flex items-center justify-between pb-1 pt-0.5 border-b border-slate-800/80">
+    <div>
+      <h1 class="text-base font-black tracking-tight text-amber-400 leading-none">DJOSE MACHINA TRACKER</h1>
+      <p class="text-[10px] text-slate-400 mt-0.5">FFX-2 The Experiment • 38 pts each for Lv. 5</p>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <button onclick="copyShareLink()" id="shareBtn" title="Copy link with your current progress" class="touch-btn text-[11px] px-2 py-1 rounded-md bg-amber-950/70 hover:bg-amber-900/80 active:scale-95 text-amber-300 border border-amber-800/80 font-medium">
+        🔗 Share
+      </button>
+      <button onclick="undoLast()" id="undoBtn" title="Undo last change" class="touch-btn text-[11px] px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 border border-slate-700 font-medium">
+        ↩ Undo
+      </button>
+      <button onclick="resetTracker()" title="Reset all counts" class="touch-btn text-[11px] px-2 py-1 rounded-md bg-slate-900 hover:bg-rose-950/60 active:scale-95 text-slate-400 hover:text-rose-400 border border-slate-800 font-medium">
+        Reset
+      </button>
+    </div>
+  </header>
+
+  <!-- 1. Overall Progress Section -->
+  <section class="flex flex-col items-center justify-center pt-2 pb-1.5 text-center">
+    <div class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Overall Progress</div>
+    <div class="flex items-baseline justify-center my-0.5">
+      <span id="overallPct" class="text-6xl sm:text-7xl font-black tracking-tighter text-amber-400 font-mono drop-shadow">0%</span>
+    </div>
+    <div id="overallStatusBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+      Digging in progress (0 / 114 pts)
+    </div>
+    <!-- Master Progress Bar -->
+    <div class="w-full max-w-[280px] bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800 mt-2">
+      <div id="masterBar" class="h-full bg-amber-400 rounded-full transition-all duration-200" style="width: 0%"></div>
+    </div>
+  </section>
+
+  <!-- 2. Breakdown Progress Bars (Attack, Defense, Special) -->
+  <section class="grid grid-cols-3 gap-2 px-1 py-1.5">
+    <!-- ATTACK BAR CARD -->
+    <div class="bg-slate-900/90 border border-rose-900/40 rounded-xl p-2 flex flex-col justify-between shadow-sm">
+      <div class="flex items-center justify-between text-[11px]">
+        <span class="font-black text-rose-400 tracking-wider">ATK</span>
+        <span id="badge-attack" class="font-bold text-slate-300 font-mono text-[10px]">Lv.1</span>
+      </div>
+      <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden my-1.5">
+        <div id="bar-attack" class="h-full bg-rose-500 rounded-full transition-all duration-150" style="width: 0%"></div>
+      </div>
+      <div class="text-[10px] text-slate-400 font-mono text-center" id="sub-attack">0 / 38</div>
+    </div>
+
+    <!-- DEFENSE BAR CARD -->
+    <div class="bg-slate-900/90 border border-blue-900/40 rounded-xl p-2 flex flex-col justify-between shadow-sm">
+      <div class="flex items-center justify-between text-[11px]">
+        <span class="font-black text-blue-400 tracking-wider">DEF</span>
+        <span id="badge-defense" class="font-bold text-slate-300 font-mono text-[10px]">Lv.1</span>
+      </div>
+      <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden my-1.5">
+        <div id="bar-defense" class="h-full bg-blue-500 rounded-full transition-all duration-150" style="width: 0%"></div>
+      </div>
+      <div class="text-[10px] text-slate-400 font-mono text-center" id="sub-defense">0 / 38</div>
+    </div>
+
+    <!-- SPECIAL BAR CARD -->
+    <div class="bg-slate-900/90 border border-amber-900/40 rounded-xl p-2 flex flex-col justify-between shadow-sm">
+      <div class="flex items-center justify-between text-[11px]">
+        <span class="font-black text-amber-400 tracking-wider">SPC</span>
+        <span id="badge-special" class="font-bold text-slate-300 font-mono text-[10px]">Lv.1</span>
+      </div>
+      <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden my-1.5">
+        <div id="bar-special" class="h-full bg-amber-500 rounded-full transition-all duration-150" style="width: 0%"></div>
+      </div>
+      <div class="text-[10px] text-slate-400 font-mono text-center" id="sub-special">0 / 38</div>
+    </div>
+  </section>
+
+  <!-- 3. Calculator-Style Keypad Grid Aligned Under Each Stat -->
+  <section class="bg-slate-900/70 border border-slate-800/80 rounded-2xl p-2.5 shadow-lg flex flex-col justify-between flex-1 max-h-[300px] mb-1">
+    
+    <!-- Column Titles for Keypad -->
+    <div class="grid grid-cols-3 gap-2 text-center pb-1 border-b border-slate-800/60">
+      <span class="text-xs font-black text-rose-400 tracking-wider">ATTACK</span>
+      <span class="text-xs font-black text-blue-400 tracking-wider">DEFENSE</span>
+      <span class="text-xs font-black text-amber-400 tracking-wider">SPECIAL</span>
+    </div>
+
+    <!-- Keypad Rows: +1 (A), +3 (S), +5 (Z), and -1 -->
+    <div class="grid grid-cols-3 gap-2 pt-1.5 flex-1">
+      
+      <!-- ROW 1: Assembly A (+1) -->
+      <button onclick="adjust('attack', 1)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 active:translate-y-0.5 border border-rose-800/70 text-rose-200 flex flex-col items-center justify-center shadow-md">
+        <span class="text-sm sm:text-base font-black leading-none">+1</span>
+        <span class="text-[10px] text-rose-300/80 font-bold uppercase mt-0.5">Part A</span>
+      </button>
+      <button onclick="adjust('defense', 1)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-blue-950/60 hover:bg-blue-900/80 active:translate-y-0.5 border border-blue-800/70 text-blue-200 flex flex-col items-center justify-center shadow-md">
+        <span class="text-sm sm:text-base font-black leading-none">+1</span>
+        <span class="text-[10px] text-blue-300/80 font-bold uppercase mt-0.5">Part A</span>
+      </button>
+      <button onclick="adjust('special', 1)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-amber-950/60 hover:bg-amber-900/80 active:translate-y-0.5 border border-amber-800/70 text-amber-200 flex flex-col items-center justify-center shadow-md">
+        <span class="text-sm sm:text-base font-black leading-none">+1</span>
+        <span class="text-[10px] text-amber-300/80 font-bold uppercase mt-0.5">Part A</span>
+      </button>
+
+      <!-- ROW 2: Shock S (+3) -->
+      <button onclick="adjust('attack', 3)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-rose-900/70 hover:bg-rose-800/90 active:translate-y-0.5 border border-rose-700/80 text-rose-100 flex flex-col items-center justify-center shadow-md">
+        <span class="text-sm sm:text-base font-black leading-none">+3</span>
+        <span class="text-[10px] text-rose-200/90 font-bold uppercase mt-0.5">Part S</span>
+      </button>
+      <button onclick="adjust('defense', 3)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-blue-900/70 hover:bg-blue-800/90 active:translate-y-0.5 border border-blue-700/80 text-blue-100 flex flex-col items-center justify-center shadow-md">
+        <span class="text-sm sm:text-base font-black leading-none">+3</span>
+        <span class="text-[10px] text-blue-200/90 font-bold uppercase mt-0.5">Part S</span>
+      </button>
+      <button onclick="adjust('special', 3)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-amber-900/70 hover:bg-amber-800/90 active:translate-y-0.5 border border-amber-700/80 text-amber-100 flex flex-col items-center justify-center shadow-md">
+        <span class="text-sm sm:text-base font-black leading-none">+3</span>
+        <span class="text-[10px] text-amber-200/90 font-bold uppercase mt-0.5">Part S</span>
+      </button>
+
+      <!-- ROW 3: Zeta Z (+5) -->
+      <button onclick="adjust('attack', 5)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-rose-700 hover:bg-rose-600 active:translate-y-0.5 border border-rose-500 text-white flex flex-col items-center justify-center shadow-md">
+        <span class="text-sm sm:text-base font-black leading-none">+5</span>
+        <span class="text-[10px] text-rose-200 font-bold uppercase mt-0.5">Part Z</span>
+      </button>
+      <button onclick="adjust('defense', 5)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-blue-700 hover:bg-blue-600 active:translate-y-0.5 border border-blue-500 text-white flex flex-col items-center justify-center shadow-md">
+        <span class="text-sm sm:text-base font-black leading-none">+5</span>
+        <span class="text-[10px] text-blue-200 font-bold uppercase mt-0.5">Part Z</span>
+      </button>
+      <button onclick="adjust('special', 5)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 active:translate-y-0.5 border border-amber-400 text-white flex flex-col items-center justify-center shadow-md">
+        <span class="text-sm sm:text-base font-black leading-none">+5</span>
+        <span class="text-[10px] text-amber-100 font-bold uppercase mt-0.5">Part Z</span>
+      </button>
+
+      <!-- ROW 4: Minus 1 (-1) -->
+      <button onclick="adjust('attack', -1)" title="Subtract 1 pt" class="touch-btn py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:translate-y-0.5 border border-slate-700 text-xs font-black text-rose-400/90 flex items-center justify-center">
+        −1
+      </button>
+      <button onclick="adjust('defense', -1)" title="Subtract 1 pt" class="touch-btn py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:translate-y-0.5 border border-slate-700 text-xs font-black text-blue-400/90 flex items-center justify-center">
+        −1
+      </button>
+      <button onclick="adjust('special', -1)" title="Subtract 1 pt" class="touch-btn py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:translate-y-0.5 border border-slate-700 text-xs font-black text-amber-400/90 flex items-center justify-center">
+        −1
+      </button>
+    </div>
+  </section>
+
+  <!-- 1-line Warning Footer -->
+  <footer class="text-center pb-1">
+    <p class="text-[10px] text-amber-300/80 leading-tight">
+      ⚠️ Defeat Experiment once <em>before</em> all 3 reach Lv. 5 for Episode Complete!
+    </p>
+  </footer>
+
+  <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800 text-amber-300 text-xs px-3 py-1.5 rounded-lg border border-amber-500/40 shadow-xl opacity-0 pointer-events-none transition-opacity duration-200">
+    Link copied to clipboard!
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'ffx2_machina_tracker_compact';
+    const MAX_SINGLE = 38;
+    const MAX_TOTAL = MAX_SINGLE * 3; // 114 pts
+
+    let points = {
+      attack: 0,
+      defense: 0,
+      special: 0
+    };
+
+    let historyStack = [];
+
+    function getLevel(pts) {
+      if (pts >= 38) return 5;
+      if (pts >= 20) return 4;
+      if (pts >= 10) return 3;
+      if (pts >= 4) return 2;
+      return 1;
+    }
+
+    function adjust(stat, val) {
+      historyStack.push({ ...points });
+      points[stat] = Math.max(0, points[stat] + val);
+      saveState();
+      render();
+    }
+
+    function undoLast() {
+      if (historyStack.length > 0) {
+        points = historyStack.pop();
+        saveState();
+        render();
+      }
+    }
+
+    function resetTracker() {
+      historyStack.push({ ...points });
+      points = { attack: 0, defense: 0, special: 0 };
+      saveState();
+      render();
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(points));
+      } catch (e) {
+        console.warn('localStorage is restricted or unavailable:', e);
+      }
+
+      try {
+        const hash = `#atk=${points.attack}&def=${points.defense}&spc=${points.special}`;
+        if (window.location.hash !== hash) {
+          history.replaceState(null, '', hash);
+        }
+      } catch (e) {
+        console.warn('History replaceState failed:', e);
+      }
+    }
+
+    function loadState() {
+      let loadedFromHash = false;
+
+      try {
+        const hashStr = window.location.hash.replace(/^#/, '');
+        if (hashStr) {
+          const params = new URLSearchParams(hashStr);
+          if (params.has('atk') || params.has('def') || params.has('spc')) {
+            points.attack = Math.max(0, parseInt(params.get('atk'), 10) || 0);
+            points.defense = Math.max(0, parseInt(params.get('def'), 10) || 0);
+            points.special = Math.max(0, parseInt(params.get('spc'), 10) || 0);
+            loadedFromHash = true;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to parse URL hash:', e);
+      }
+
+      if (!loadedFromHash) {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            points.attack = Math.max(0, parseInt(parsed.attack, 10) || 0);
+            points.defense = Math.max(0, parseInt(parsed.defense, 10) || 0);
+            points.special = Math.max(0, parseInt(parsed.special, 10) || 0);
+          }
+        } catch (e) {
+          console.warn('Failed to load localStorage:', e);
+        }
+      }
+
+      render();
+    }
+
+    function copyShareLink() {
+      saveState();
+      const currentUrl = window.location.href;
+      
+      const dummyInput = document.createElement('input');
+      dummyInput.setAttribute('value', currentUrl);
+      document.body.appendChild(dummyInput);
+      dummyInput.select();
+      
+      try {
+        document.execCommand('copy');
+        showToast('Link with current points copied!');
+      } catch (err) {
+        showToast('Could not copy link');
+      }
+      document.body.removeChild(dummyInput);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 2200);
+    }
+
+    function render() {
+      const stats = ['attack', 'defense', 'special'];
+      let cappedTotal = 0;
+      let allMaxed = true;
+
+      stats.forEach(stat => {
+        const pts = points[stat];
+        const lvl = getLevel(pts);
+        const capped = Math.min(MAX_SINGLE, pts);
+        cappedTotal += capped;
+
+        const pct = Math.min(100, Math.round((pts / MAX_SINGLE) * 100));
+
+        document.getElementById(`bar-${stat}`).style.width = `${pct}%`;
+        document.getElementById(`badge-${stat}`).textContent = lvl === 5 ? 'MAX' : `Lv.${lvl}`;
+        document.getElementById(`sub-${stat}`).textContent = `${pts} / 38`;
+
+        if (lvl < 5) allMaxed = false;
+      });
+
+      const overallPercent = Math.min(100, Math.round((cappedTotal / MAX_TOTAL) * 100));
+      document.getElementById('overallPct').textContent = `${overallPercent}%`;
+      document.getElementById('masterBar').style.width = `${overallPercent}%`;
+
+      const badge = document.getElementById('overallStatusBadge');
+      if (allMaxed) {
+        badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-950 text-emerald-300 border border-emerald-500 shadow';
+        badge.textContent = '🎉 READY FOR FINAL LV. 5 BATTLE!';
+      } else {
+        const remaining = MAX_TOTAL - cappedTotal;
+        badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700';
+        badge.textContent = `Digging: ${cappedTotal} / 114 pts (${remaining} left)`;
+      }
+    }
+
+    loadState();
+  </script>
+</body>
+</html>
