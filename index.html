@@ -321,10 +321,10 @@
       const delta = toCents - startCents;
       const dir = delta > 0 ? 1 : -1;
       const total = Math.abs(delta);
-      const crawlCount = Math.min(12, total);
+      const crawlCount = Math.min(20, total);
       const fastCount = total - crawlCount;
       const totalFrames = 60;
-      const fastFrames = 27;
+      const fastFrames = 20;
       const crawlFrames = totalFrames - fastFrames;
       let frame = 0;
 
