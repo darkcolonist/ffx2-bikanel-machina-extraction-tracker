@@ -26,6 +26,9 @@
       touch-action: manipulation;
       user-select: none;
     }
+    .sheet-scroll {
+      -webkit-overflow-scrolling: touch;
+    }
   </style>
 </head>
 <body class="p-2.5 sm:p-4 flex flex-col justify-between max-w-md mx-auto h-full select-none">
@@ -36,13 +39,13 @@
       <p class="text-[10px] text-slate-400 mt-0.5">FFX-2 The Experiment • 38 pts each for Lv. 5</p>
     </div>
     <div class="flex items-center gap-1.5">
-      <button onclick="copyShareLink()" id="shareBtn" title="Copy link with your current progress" class="touch-btn text-[11px] px-2 py-1 rounded-md bg-amber-950/70 hover:bg-amber-900/80 active:scale-95 text-amber-300 border border-amber-800/80 font-medium">
-        🔗 Share
+      <button onclick="openHistory()" id="historyBtn" title="Show part history" class="touch-btn text-[11px] px-2 py-1 rounded-md bg-amber-950/70 hover:bg-amber-900/80 active:scale-95 text-amber-300 border border-amber-800/80 font-medium">
+        History
       </button>
       <button onclick="undoLast()" id="undoBtn" title="Undo last change" class="touch-btn text-[11px] px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 border border-slate-700 font-medium">
         ↩ Undo
       </button>
-      <button onclick="resetTracker()" title="Reset all counts" class="touch-btn text-[11px] px-2 py-1 rounded-md bg-slate-900 hover:bg-rose-950/60 active:scale-95 text-slate-400 hover:text-rose-400 border border-slate-800 font-medium">
+      <button onclick="requestReset()" title="Reset all counts" class="touch-btn text-[11px] px-2 py-1 rounded-md bg-slate-900 hover:bg-rose-950/60 active:scale-95 text-slate-400 hover:text-rose-400 border border-slate-800 font-medium">
         Reset
       </button>
     </div>
@@ -177,8 +180,38 @@
     </p>
   </footer>
 
-  <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800 text-amber-300 text-xs px-3 py-1.5 rounded-lg border border-amber-500/40 shadow-xl opacity-0 pointer-events-none transition-opacity duration-200">
-    Link copied to clipboard!
+  <!-- History sheet -->
+  <div id="historySheet" class="fixed inset-0 z-30 hidden">
+    <div class="absolute inset-0 bg-black/70" onclick="closeHistory()"></div>
+    <div class="relative mx-auto h-full w-full max-w-md flex flex-col bg-[#090d14] border-x border-slate-800">
+      <div class="flex items-center justify-between px-3 py-2.5 border-b border-slate-800">
+        <div>
+          <h2 class="text-sm font-black tracking-tight text-amber-400">PART HISTORY</h2>
+          <p class="text-[10px] text-slate-400" id="historyCountLabel">No parts logged</p>
+        </div>
+        <button onclick="closeHistory()" class="touch-btn text-[11px] px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-medium">
+          Close
+        </button>
+      </div>
+      <div id="historyList" class="flex-1 overflow-y-auto sheet-scroll px-3 py-2"></div>
+    </div>
+  </div>
+
+  <!-- Reset confirmation -->
+  <div id="resetModal" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/70" onclick="cancelReset()"></div>
+    <div class="relative mx-auto mt-[30vh] w-[min(92%,20rem)] rounded-2xl bg-slate-900 border border-slate-700 p-4 shadow-2xl">
+      <h2 class="text-sm font-black text-rose-300">Reset tracker?</h2>
+      <p class="text-[11px] text-slate-400 mt-1.5 leading-snug">This clears all points and the part history. This cannot be undone from here.</p>
+      <div class="flex gap-2 mt-4">
+        <button onclick="cancelReset()" class="touch-btn flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700">
+          Cancel
+        </button>
+        <button onclick="confirmReset()" class="touch-btn flex-1 py-2 rounded-xl bg-rose-800 hover:bg-rose-700 text-white text-xs font-black border border-rose-500">
+          Reset
+        </button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -186,13 +219,20 @@
     const MAX_SINGLE = 38;
     const MAX_TOTAL = MAX_SINGLE * 3; // 114 pts
 
+    const STAT_META = {
+      attack: { label: 'Attack', short: 'ATK', tone: 'text-rose-300' },
+      defense: { label: 'Defense', short: 'DEF', tone: 'text-blue-300' },
+      special: { label: 'Special', short: 'SPC', tone: 'text-amber-300' }
+    };
+
     let points = {
       attack: 0,
       defense: 0,
       special: 0
     };
 
-    let historyStack = [];
+    let eventLog = [];
+    let undoStack = [];
 
     function getLevel(pts) {
       if (pts >= 38) return 5;
@@ -202,31 +242,123 @@
       return 1;
     }
 
+    function partFromVal(val) {
+      if (val === 1) return 'A';
+      if (val === 3) return 'S';
+      if (val === 5) return 'Z';
+      return null;
+    }
+
+    function snapshot() {
+      undoStack.push({
+        points: { ...points },
+        eventLog: eventLog.map((entry) => ({ ...entry }))
+      });
+    }
+
     function adjust(stat, val) {
-      historyStack.push({ ...points });
+      snapshot();
       points[stat] = Math.max(0, points[stat] + val);
+      eventLog.push({
+        t: Date.now(),
+        stat,
+        val,
+        part: partFromVal(val)
+      });
       saveState();
       render();
     }
 
     function undoLast() {
-      if (historyStack.length > 0) {
-        points = historyStack.pop();
-        saveState();
-        render();
-      }
-    }
-
-    function resetTracker() {
-      historyStack.push({ ...points });
-      points = { attack: 0, defense: 0, special: 0 };
+      if (undoStack.length === 0) return;
+      const previous = undoStack.pop();
+      points = previous.points;
+      eventLog = previous.eventLog;
       saveState();
       render();
     }
 
+    function requestReset() {
+      document.getElementById('resetModal').classList.remove('hidden');
+    }
+
+    function cancelReset() {
+      document.getElementById('resetModal').classList.add('hidden');
+    }
+
+    function confirmReset() {
+      points = { attack: 0, defense: 0, special: 0 };
+      eventLog = [];
+      undoStack = [];
+      cancelReset();
+      saveState();
+      render();
+    }
+
+    function openHistory() {
+      renderHistory();
+      document.getElementById('historySheet').classList.remove('hidden');
+    }
+
+    function closeHistory() {
+      document.getElementById('historySheet').classList.add('hidden');
+    }
+
+    function formatWhen(ts) {
+      try {
+        return new Date(ts).toLocaleString(undefined, {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+      } catch (e) {
+        return String(ts);
+      }
+    }
+
+    function describeEntry(entry) {
+      const meta = STAT_META[entry.stat] || { label: entry.stat, short: entry.stat };
+      if (entry.part) {
+        return `${meta.label} · Part ${entry.part} (+${entry.val})`;
+      }
+      return `${meta.label} · ${entry.val} pt`;
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      const countLabel = document.getElementById('historyCountLabel');
+      const n = eventLog.length;
+      countLabel.textContent = n === 0 ? 'No parts logged' : `${n} logged`;
+
+      if (n === 0) {
+        list.innerHTML = '<p class="text-center text-xs text-slate-500 py-10">Tap Part A / S / Z to start logging.</p>';
+        return;
+      }
+
+      const newestFirst = eventLog.slice().reverse();
+      list.innerHTML = newestFirst.map((entry) => {
+        const meta = STAT_META[entry.stat] || { tone: 'text-slate-300', short: '' };
+        return (
+          '<div class="rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 mb-2">' +
+            `<div class="text-[10px] text-slate-400 font-mono">${formatWhen(entry.t)}</div>` +
+            `<div class="text-sm font-bold mt-0.5 ${meta.tone}">${describeEntry(entry)}</div>` +
+          '</div>'
+        );
+      }).join('');
+    }
+
     function saveState() {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(points));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          attack: points.attack,
+          defense: points.defense,
+          special: points.special,
+          log: eventLog
+        }));
       } catch (e) {
         console.warn('localStorage is restricted or unavailable:', e);
       }
@@ -259,50 +391,24 @@
         console.warn('Failed to parse URL hash:', e);
       }
 
-      if (!loadedFromHash) {
-        try {
-          const saved = localStorage.getItem(STORAGE_KEY);
-          if (saved) {
-            const parsed = JSON.parse(saved);
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (!loadedFromHash) {
             points.attack = Math.max(0, parseInt(parsed.attack, 10) || 0);
             points.defense = Math.max(0, parseInt(parsed.defense, 10) || 0);
             points.special = Math.max(0, parseInt(parsed.special, 10) || 0);
           }
-        } catch (e) {
-          console.warn('Failed to load localStorage:', e);
+          if (Array.isArray(parsed.log)) {
+            eventLog = parsed.log.filter((entry) => entry && entry.t && entry.stat);
+          }
         }
+      } catch (e) {
+        console.warn('Failed to load localStorage:', e);
       }
 
       render();
-    }
-
-    function copyShareLink() {
-      saveState();
-      const currentUrl = window.location.href;
-      
-      const dummyInput = document.createElement('input');
-      dummyInput.setAttribute('value', currentUrl);
-      document.body.appendChild(dummyInput);
-      dummyInput.select();
-      
-      try {
-        document.execCommand('copy');
-        showToast('Link with current points copied!');
-      } catch (err) {
-        showToast('Could not copy link');
-      }
-      document.body.removeChild(dummyInput);
-    }
-
-    function showToast(msg) {
-      const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.classList.remove('opacity-0');
-      toast.classList.add('opacity-100');
-      setTimeout(() => {
-        toast.classList.remove('opacity-100');
-        toast.classList.add('opacity-0');
-      }, 2200);
     }
 
     function render() {
@@ -337,6 +443,14 @@
         const remaining = MAX_TOTAL - cappedTotal;
         badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700';
         badge.textContent = `Digging: ${cappedTotal} / 114 pts (${remaining} left)`;
+      }
+
+      const historyBtn = document.getElementById('historyBtn');
+      const n = eventLog.length;
+      historyBtn.textContent = n > 0 ? `History (${n})` : 'History';
+
+      if (!document.getElementById('historySheet').classList.contains('hidden')) {
+        renderHistory();
       }
     }
 
