@@ -29,6 +29,46 @@
     .sheet-scroll {
       -webkit-overflow-scrolling: touch;
     }
+    .key-btn {
+      position: relative;
+      transition: box-shadow 0.15s ease, outline-color 0.15s ease, opacity 0.15s ease, filter 0.15s ease;
+    }
+    .keypad.has-last .key-btn:not(.is-last) {
+      opacity: 0.55;
+      filter: saturate(0.75);
+    }
+    .key-btn.is-last {
+      z-index: 1;
+      outline: 2px solid #fbbf24;
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.28), 0 0 16px rgba(251, 191, 36, 0.55);
+    }
+    .key-btn.is-last::after {
+      content: "LAST";
+      position: absolute;
+      top: -8px;
+      right: -5px;
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      line-height: 1.2;
+      background: #fbbf24;
+      color: #1c1403;
+      border-radius: 999px;
+      padding: 2px 5px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+    }
+    @keyframes key-pop {
+      0% { transform: scale(1); }
+      40% { transform: scale(0.9); }
+      100% { transform: scale(1); }
+    }
+    .key-btn.just-tapped {
+      animation: key-pop 180ms ease-out;
+    }
+    .stat-card.is-last {
+      box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.55), 0 0 12px rgba(251, 191, 36, 0.2);
+    }
   </style>
 </head>
 <body class="p-2.5 sm:p-4 flex flex-col justify-between max-w-md mx-auto h-full select-none">
@@ -69,7 +109,7 @@
   <!-- 2. Breakdown Progress Bars (Attack, Defense, Special) -->
   <section class="grid grid-cols-3 gap-2 px-1 py-1.5">
     <!-- ATTACK BAR CARD -->
-    <div class="bg-slate-900/90 border border-rose-900/40 rounded-xl p-2 flex flex-col justify-between shadow-sm">
+    <div id="card-attack" class="stat-card bg-slate-900/90 border border-rose-900/40 rounded-xl p-2 flex flex-col justify-between shadow-sm">
       <div class="flex items-center justify-between text-[11px]">
         <span class="font-black text-rose-400 tracking-wider">ATK</span>
         <span id="badge-attack" class="font-bold text-slate-300 font-mono text-[10px]">Lv.1</span>
@@ -81,7 +121,7 @@
     </div>
 
     <!-- DEFENSE BAR CARD -->
-    <div class="bg-slate-900/90 border border-blue-900/40 rounded-xl p-2 flex flex-col justify-between shadow-sm">
+    <div id="card-defense" class="stat-card bg-slate-900/90 border border-blue-900/40 rounded-xl p-2 flex flex-col justify-between shadow-sm">
       <div class="flex items-center justify-between text-[11px]">
         <span class="font-black text-blue-400 tracking-wider">DEF</span>
         <span id="badge-defense" class="font-bold text-slate-300 font-mono text-[10px]">Lv.1</span>
@@ -93,7 +133,7 @@
     </div>
 
     <!-- SPECIAL BAR CARD -->
-    <div class="bg-slate-900/90 border border-amber-900/40 rounded-xl p-2 flex flex-col justify-between shadow-sm">
+    <div id="card-special" class="stat-card bg-slate-900/90 border border-amber-900/40 rounded-xl p-2 flex flex-col justify-between shadow-sm">
       <div class="flex items-center justify-between text-[11px]">
         <span class="font-black text-amber-400 tracking-wider">SPC</span>
         <span id="badge-special" class="font-bold text-slate-300 font-mono text-[10px]">Lv.1</span>
@@ -116,58 +156,58 @@
     </div>
 
     <!-- Keypad Rows: +1 (A), +3 (S), +5 (Z), and -1 -->
-    <div class="grid grid-cols-3 gap-2 pt-1.5 flex-1">
+    <div id="keypadGrid" class="keypad grid grid-cols-3 gap-2 pt-2.5 flex-1">
       
       <!-- ROW 1: Assembly A (+1) -->
-      <button onclick="adjust('attack', 1)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 active:translate-y-0.5 border border-rose-800/70 text-rose-100 flex flex-col items-center justify-center shadow-md">
+      <button onclick="adjust('attack', 1)" data-stat="attack" data-val="1" class="key-btn touch-btn py-2 sm:py-2.5 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 active:translate-y-0.5 border border-rose-800/70 text-rose-100 flex flex-col items-center justify-center shadow-md">
         <span class="text-xl sm:text-2xl font-black leading-none tracking-tight">A</span>
         <span class="text-[10px] text-rose-300/55 font-semibold mt-0.5">+1</span>
       </button>
-      <button onclick="adjust('defense', 1)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-blue-950/60 hover:bg-blue-900/80 active:translate-y-0.5 border border-blue-800/70 text-blue-100 flex flex-col items-center justify-center shadow-md">
+      <button onclick="adjust('defense', 1)" data-stat="defense" data-val="1" class="key-btn touch-btn py-2 sm:py-2.5 rounded-xl bg-blue-950/60 hover:bg-blue-900/80 active:translate-y-0.5 border border-blue-800/70 text-blue-100 flex flex-col items-center justify-center shadow-md">
         <span class="text-xl sm:text-2xl font-black leading-none tracking-tight">A</span>
         <span class="text-[10px] text-blue-300/55 font-semibold mt-0.5">+1</span>
       </button>
-      <button onclick="adjust('special', 1)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-amber-950/60 hover:bg-amber-900/80 active:translate-y-0.5 border border-amber-800/70 text-amber-100 flex flex-col items-center justify-center shadow-md">
+      <button onclick="adjust('special', 1)" data-stat="special" data-val="1" class="key-btn touch-btn py-2 sm:py-2.5 rounded-xl bg-amber-950/60 hover:bg-amber-900/80 active:translate-y-0.5 border border-amber-800/70 text-amber-100 flex flex-col items-center justify-center shadow-md">
         <span class="text-xl sm:text-2xl font-black leading-none tracking-tight">A</span>
         <span class="text-[10px] text-amber-300/55 font-semibold mt-0.5">+1</span>
       </button>
 
       <!-- ROW 2: Shock S (+3) -->
-      <button onclick="adjust('attack', 3)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-rose-900/70 hover:bg-rose-800/90 active:translate-y-0.5 border border-rose-700/80 text-rose-50 flex flex-col items-center justify-center shadow-md">
+      <button onclick="adjust('attack', 3)" data-stat="attack" data-val="3" class="key-btn touch-btn py-2 sm:py-2.5 rounded-xl bg-rose-900/70 hover:bg-rose-800/90 active:translate-y-0.5 border border-rose-700/80 text-rose-50 flex flex-col items-center justify-center shadow-md">
         <span class="text-xl sm:text-2xl font-black leading-none tracking-tight">S</span>
         <span class="text-[10px] text-rose-200/55 font-semibold mt-0.5">+3</span>
       </button>
-      <button onclick="adjust('defense', 3)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-blue-900/70 hover:bg-blue-800/90 active:translate-y-0.5 border border-blue-700/80 text-blue-50 flex flex-col items-center justify-center shadow-md">
+      <button onclick="adjust('defense', 3)" data-stat="defense" data-val="3" class="key-btn touch-btn py-2 sm:py-2.5 rounded-xl bg-blue-900/70 hover:bg-blue-800/90 active:translate-y-0.5 border border-blue-700/80 text-blue-50 flex flex-col items-center justify-center shadow-md">
         <span class="text-xl sm:text-2xl font-black leading-none tracking-tight">S</span>
         <span class="text-[10px] text-blue-200/55 font-semibold mt-0.5">+3</span>
       </button>
-      <button onclick="adjust('special', 3)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-amber-900/70 hover:bg-amber-800/90 active:translate-y-0.5 border border-amber-700/80 text-amber-50 flex flex-col items-center justify-center shadow-md">
+      <button onclick="adjust('special', 3)" data-stat="special" data-val="3" class="key-btn touch-btn py-2 sm:py-2.5 rounded-xl bg-amber-900/70 hover:bg-amber-800/90 active:translate-y-0.5 border border-amber-700/80 text-amber-50 flex flex-col items-center justify-center shadow-md">
         <span class="text-xl sm:text-2xl font-black leading-none tracking-tight">S</span>
         <span class="text-[10px] text-amber-200/55 font-semibold mt-0.5">+3</span>
       </button>
 
       <!-- ROW 3: Zeta Z (+5) -->
-      <button onclick="adjust('attack', 5)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-rose-700 hover:bg-rose-600 active:translate-y-0.5 border border-rose-500 text-white flex flex-col items-center justify-center shadow-md">
+      <button onclick="adjust('attack', 5)" data-stat="attack" data-val="5" class="key-btn touch-btn py-2 sm:py-2.5 rounded-xl bg-rose-700 hover:bg-rose-600 active:translate-y-0.5 border border-rose-500 text-white flex flex-col items-center justify-center shadow-md">
         <span class="text-xl sm:text-2xl font-black leading-none tracking-tight">Z</span>
         <span class="text-[10px] text-white/55 font-semibold mt-0.5">+5</span>
       </button>
-      <button onclick="adjust('defense', 5)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-blue-700 hover:bg-blue-600 active:translate-y-0.5 border border-blue-500 text-white flex flex-col items-center justify-center shadow-md">
+      <button onclick="adjust('defense', 5)" data-stat="defense" data-val="5" class="key-btn touch-btn py-2 sm:py-2.5 rounded-xl bg-blue-700 hover:bg-blue-600 active:translate-y-0.5 border border-blue-500 text-white flex flex-col items-center justify-center shadow-md">
         <span class="text-xl sm:text-2xl font-black leading-none tracking-tight">Z</span>
         <span class="text-[10px] text-white/55 font-semibold mt-0.5">+5</span>
       </button>
-      <button onclick="adjust('special', 5)" class="touch-btn py-2 sm:py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 active:translate-y-0.5 border border-amber-400 text-white flex flex-col items-center justify-center shadow-md">
+      <button onclick="adjust('special', 5)" data-stat="special" data-val="5" class="key-btn touch-btn py-2 sm:py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 active:translate-y-0.5 border border-amber-400 text-white flex flex-col items-center justify-center shadow-md">
         <span class="text-xl sm:text-2xl font-black leading-none tracking-tight">Z</span>
         <span class="text-[10px] text-white/55 font-semibold mt-0.5">+5</span>
       </button>
 
       <!-- ROW 4: Minus 1 (-1) -->
-      <button onclick="adjust('attack', -1)" title="Subtract 1 pt" class="touch-btn py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:translate-y-0.5 border border-slate-700 text-xs font-black text-rose-400/90 flex items-center justify-center">
+      <button onclick="adjust('attack', -1)" data-stat="attack" data-val="-1" title="Subtract 1 pt" class="key-btn touch-btn py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:translate-y-0.5 border border-slate-700 text-xs font-black text-rose-400/90 flex items-center justify-center">
         −1
       </button>
-      <button onclick="adjust('defense', -1)" title="Subtract 1 pt" class="touch-btn py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:translate-y-0.5 border border-slate-700 text-xs font-black text-blue-400/90 flex items-center justify-center">
+      <button onclick="adjust('defense', -1)" data-stat="defense" data-val="-1" title="Subtract 1 pt" class="key-btn touch-btn py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:translate-y-0.5 border border-slate-700 text-xs font-black text-blue-400/90 flex items-center justify-center">
         −1
       </button>
-      <button onclick="adjust('special', -1)" title="Subtract 1 pt" class="touch-btn py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:translate-y-0.5 border border-slate-700 text-xs font-black text-amber-400/90 flex items-center justify-center">
+      <button onclick="adjust('special', -1)" data-stat="special" data-val="-1" title="Subtract 1 pt" class="key-btn touch-btn py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:translate-y-0.5 border border-slate-700 text-xs font-black text-amber-400/90 flex items-center justify-center">
         −1
       </button>
     </div>
@@ -249,6 +289,42 @@
       return null;
     }
 
+    function lastLogEntry() {
+      return eventLog.length ? eventLog[eventLog.length - 1] : null;
+    }
+
+    function updateLastTap(pulse) {
+      const last = lastLogEntry();
+      const keypad = document.getElementById('keypadGrid');
+      if (keypad) keypad.classList.toggle('has-last', !!last);
+
+      document.querySelectorAll('.key-btn').forEach((btn) => {
+        const isLast = !!(
+          last &&
+          btn.dataset.stat === last.stat &&
+          Number(btn.dataset.val) === last.val
+        );
+        btn.classList.toggle('is-last', isLast);
+        if (!isLast) btn.classList.remove('just-tapped');
+      });
+
+      ['attack', 'defense', 'special'].forEach((stat) => {
+        const card = document.getElementById(`card-${stat}`);
+        if (card) card.classList.toggle('is-last', !!(last && last.stat === stat));
+      });
+
+      if (pulse && last) {
+        const current = document.querySelector(
+          `.key-btn[data-stat="${last.stat}"][data-val="${last.val}"]`
+        );
+        if (current) {
+          current.classList.remove('just-tapped');
+          void current.offsetWidth;
+          current.classList.add('just-tapped');
+        }
+      }
+    }
+
     function snapshot() {
       undoStack.push({
         points: { ...points },
@@ -267,6 +343,7 @@
       });
       saveState();
       render();
+      updateLastTap(true);
     }
 
     function undoLast() {
@@ -452,6 +529,8 @@
       if (!document.getElementById('historySheet').classList.contains('hidden')) {
         renderHistory();
       }
+
+      updateLastTap(false);
     }
 
     loadState();
