@@ -2,7 +2,9 @@
 
 A single-page tracker for **Final Fantasy X-2** Djose Temple — *The Experiment* digging minigame.
 
-Tap parts as you dig them: **A = 1**, **S = 3**, **Z = 5**. Each of Attack, Defense, and Special needs **38 points** to reach **Lv. 5** (114 points total). Progress is saved in the URL hash and in `localStorage`, so a refresh or a shared link keeps your counts.
+Tap parts as you dig them: **A = 1**, **S = 3**, **Z = 5**. Each of Attack, Defense, and Special needs **38 points** to reach **Lv. 5** (114 points total). Progress and part history are saved in `localStorage` (and the URL hash for counts), so a refresh keeps your work.
+
+Tap **History** to see the date, time, and which part you logged. **Reset** asks for confirmation and clears counts plus history.
 
 Defeat Experiment once **before** all three stats hit Lv. 5 if you want Episode Complete.
 
@@ -43,4 +45,4 @@ The page is a full-screen standalone web app (no browser chrome).
 2. Tap the menu (⋮) → **Add to Home screen** / **Install app**.
 3. Confirm. The shortcut opens full-screen.
 
-Progress stays on the device (`localStorage`) and in the URL (`#atk=&def=&spc=`), so you can share a link with your current counts.
+Progress stays on the device (`localStorage`) and in the URL (`#atk=&def=&spc=`). Part history (date, time, which part) is stored locally.
