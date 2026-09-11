@@ -278,8 +278,8 @@
     let percentAnimTo = null;
     let percentHasPainted = false;
 
-    function easeOutQuart(t) {
-      return 1 - Math.pow(1 - t, 4);
+    function easeOutQuad(t) {
+      return 1 - (1 - t) * (1 - t);
     }
 
     function paintPercent(value) {
@@ -290,47 +290,70 @@
 
     function animateOverallPercent(target) {
       const to = Math.min(100, Math.max(0, target));
+      const toCents = Math.round(to * 100);
 
       if (!percentHasPainted) {
         percentHasPainted = true;
-        displayedPercent = to;
+        displayedPercent = toCents / 100;
         percentAnimTo = to;
-        paintPercent(to);
+        paintPercent(displayedPercent);
         return;
       }
 
-      if (
-        percentAnimTo !== null &&
-        Math.abs(percentAnimTo - to) < 0.0005 &&
-        Math.abs(displayedPercent - to) < 0.0005
-      ) {
-        return;
+      if (percentAnimRaf) {
+        cancelAnimationFrame(percentAnimRaf);
+        percentAnimRaf = null;
       }
 
-      if (percentAnimRaf) cancelAnimationFrame(percentAnimRaf);
+      const startCents = Math.round(displayedPercent * 100);
       percentAnimTo = to;
 
-      const from = displayedPercent;
-      if (Math.abs(to - from) < 0.0005) {
-        displayedPercent = to;
-        paintPercent(to);
-        percentAnimRaf = null;
+      if (startCents === toCents) {
+        displayedPercent = toCents / 100;
+        paintPercent(displayedPercent);
         return;
       }
 
+      const delta = toCents - startCents;
+      const dir = delta > 0 ? 1 : -1;
+      const total = Math.abs(delta);
+      const crawlCount = Math.min(12, total);
+      const fastCount = total - crawlCount;
+      const fastMs = 450;
+      const crawlMs = 550;
+      const duration = fastMs + crawlMs;
       const start = performance.now();
-      const duration = 1000;
 
       function tick(now) {
-        const t = Math.min(1, (now - start) / duration);
-        const eased = easeOutQuart(t);
-        displayedPercent = from + (to - from) * eased;
+        const elapsed = now - start;
+        let moved;
+
+        if (fastCount === 0) {
+          const t = Math.min(1, elapsed / duration);
+          moved = Math.round(easeOutQuad(t) * total);
+        } else if (elapsed < fastMs) {
+          const t = Math.min(1, elapsed / fastMs);
+          moved = Math.round(easeOutQuad(t) * fastCount);
+        } else {
+          const t = Math.min(1, (elapsed - fastMs) / crawlMs);
+          moved = fastCount + Math.floor(t * crawlCount);
+        }
+
+        moved = Math.min(total, Math.max(0, moved));
+        let cents = startCents + dir * moved;
+
+        if (elapsed >= duration) {
+          cents = toCents;
+        }
+
+        displayedPercent = cents / 100;
         paintPercent(displayedPercent);
-        if (t < 1) {
+
+        if (cents !== toCents && elapsed < duration) {
           percentAnimRaf = requestAnimationFrame(tick);
         } else {
-          displayedPercent = to;
-          paintPercent(to);
+          displayedPercent = toCents / 100;
+          paintPercent(displayedPercent);
           percentAnimRaf = null;
         }
       }
